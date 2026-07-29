@@ -12,17 +12,25 @@ class Screenshots:
 
     def capture(self, name):
 
-        filename = datetime.now().strftime(
-            "%Y%m%d_%H%M%S"
-        )
+        try:
+            filename = datetime.now().strftime(
+                "%Y%m%d_%H%M%S"
+            )
 
-        path = f"screenshots/{filename}_{name}.png"
+            path = f"screenshots/{filename}_{name}.png"
 
-        self.page.screenshot(
-            path=path,
-            full_page=True
-        )
+            # Added timeout=5000 so it doesn't hang for 60 seconds on cloud servers
+            self.page.screenshot(
+                path=path,
+                full_page=True,
+                timeout=5000
+            )
 
-        print(f"Screenshot Saved : {path}")
+            print(f"Screenshot Saved : {path}")
 
-        return path
+            return path
+            
+        except Exception as e:
+            # If taking a screenshot fails, print a warning but DO NOT crash the script
+            print(f"⚠ Could not take screenshot: {e}")
+            return None
