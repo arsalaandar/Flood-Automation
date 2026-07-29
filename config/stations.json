@@ -1,0 +1,83 @@
+{
+  "Kashmir": {
+
+    "Sangam": {
+      "ctl":"ctl04",
+      "column":"feet"
+    },
+
+    "Pampore":{
+      "ctl":"ctl06",
+      "column":"meter"
+    },
+
+    "MunshiBagh":{
+      "ctl":"ctl09",
+      "column":"feet"
+    },
+
+    "Asham":{
+      "ctl":"ctl11",
+      "column":"feet"
+    },
+
+    "Wullar":{
+      "ctl":"ctl12",
+      "column":"msl"
+    },
+
+    "Vishow Nallah at Khudwani":{
+      "ctl":"ctl17",
+      "column":"meter"
+    },
+
+    "Rambiyara Nallah at Wachi":{
+      "ctl":"ctl19",
+      "column":"meter"
+    },
+
+    "Lidder Nallah at Batkoot":{
+      "ctl":"ctl21",
+      "column":"meter"
+    },
+
+    "Doodhganga Nallah at Barzulla":{
+      "ctl":"ctl25",
+      "column":"meter"
+    },
+
+    "Sindh Nallah at Doderhama":{
+      "ctl":"ctl27",
+      "column":"meter"
+    }
+  },
+
+  "Jammu": {
+
+    "Udhampur": {
+      "ctl": "ctl03",
+      "fill": ["feet", "cusec"]
+    },
+
+    "Jammu": {
+      "ctl": "ctl04",
+      "fill": ["feet", "cusec"]
+    },
+
+    "Akhnoor": {
+      "ctl": "ctl05",
+      "fill": ["feet", "cusec"]
+    },
+
+    "Ramban": {
+      "ctl": "ctl06",
+      "fill": ["meter", "msl", "cusec"]
+    },
+
+    "Reasi": {
+      "ctl": "ctl07",
+      "fill": ["feet", "msl", "cusec"]
+    }
+
+  }
+}

@@ -1,0 +1,35 @@
+{
+    "url":"https://jkiofs.in/jkiofs/index.aspx",
+
+    "username":"",
+
+    "password":"",
+
+    "login_type":"Editor",
+
+    "retry_count": 3,
+
+  "retry_delay": 1000,
+
+  "navigation_timeout": 60000,
+
+  "page_timeout": 60000,
+
+  "wait_after_region": 6000,
+
+  "wait_after_date": 4000,
+
+  "wait_after_time": 6000,
+
+  "wait_after_enter": 1200,
+
+  "wait_after_retry": 500,
+  
+  "headless": true,
+
+  "take_screenshot": true,
+
+  "log_to_file": true,
+
+  "dry_run": false
+}
