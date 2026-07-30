@@ -116,8 +116,12 @@ def check_email_and_download():
         print(f"Error checking email: {e}")
         return None
 
-def run_automation(downloaded_files):
-    print("\nNew files found! Starting relevant automation scripts...")
+def run_automation(downloaded_files, log_callback=None):
+    # If no callback is provided, just print to the terminal (PowerShell)
+    if log_callback is None:
+        log_callback = print
+
+    log_callback("\nNew files found! Starting relevant automation scripts...")
     
     python_exe = sys.executable
     archive_dir = DATA_DIR / "processed" / datetime.now().strftime("%Y-%m-%d")
@@ -129,30 +133,45 @@ def run_automation(downloaded_files):
             if dest.exists():
                 dest = archive_dir / f"{filepath.stem}_{int(time.time())}{filepath.suffix}"
             shutil.move(str(filepath), str(dest))
-            print(f"  Archived: {filepath.name} -> {dest}")
+            log_callback(f"  Archived: {filepath.name} -> {dest}")
+
+    def run_script(cmd):
+        # Use Popen to stream output line-by-line instead of subprocess.run
+        process = subprocess.Popen(
+            cmd,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+            encoding='utf-8',
+            errors='replace',
+            text=True,
+            bufsize=1
+        )
+        for line in iter(process.stdout.readline, ''):
+            log_callback(line.rstrip('\n'))
+        process.wait()
 
     # --- Run Kashmir ---
     if downloaded_files.get("kashmir"):
-        print("\n--- Running Kashmir Automation ---")
-        subprocess.run([python_exe, "main.py"])
+        log_callback("\n--- Running Kashmir Automation ---")
+        run_script([python_exe, "-u", "main.py"])
         archive_file(downloaded_files["kashmir"])
     
     # --- Run Jammu ---
     if downloaded_files.get("jammu"):
-        print("\n--- Running Jammu Automation ---")
+        log_callback("\n--- Running Jammu Automation ---")
         # jammu_main.py auto-scans the whole data/ folder when called
         # with no filename argument - important here specifically,
         # since a single email check can download MULTIPLE Jammu files
         # (e.g. 3 PDFs + 1 xlsx + 1 image), but downloaded_files["jammu"]
         # only ever holds the LAST one seen. Passing just that one
         # filename would silently drop the rest of that batch.
-        subprocess.run([python_exe, "jammu_main.py"])
+        run_script([python_exe, "-u", "jammu_main.py"])
         archive_file(downloaded_files["jammu"])
         
     # --- Run Rainfall ---
     if downloaded_files.get("rainfall"):
-        print("\n--- Running Rainfall Automation ---")
-        subprocess.run([python_exe, "rainfall_main.py"])
+        log_callback("\n--- Running Rainfall Automation ---")
+        run_script([python_exe, "-u", "rainfall_main.py"])
         archive_file(downloaded_files["rainfall"])
 
 

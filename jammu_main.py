@@ -194,7 +194,7 @@ def group_files_by_slot(paths):
         if not date or not time_:
 
             print(
-                f"\n⚠ WARNING: {path} is missing a date or time - "
+                f"\n WARNING: {path} is missing a date or time - "
                 "skipping this file entirely (can't safely assign it "
                 "to a grid slot)."
             )
@@ -233,7 +233,7 @@ def group_files_by_slot(paths):
             if resolved_name in seen_station_names:
 
                 print(
-                    f"\n⚠ WARNING: {resolved_name} already has a reading "
+                    f"\n WARNING: {resolved_name} already has a reading "
                     f"for {date} {time_} from an earlier file in this "
                     f"run - ignoring the one from {path} (ambiguous "
                     f"which is correct; check both files manually if "
@@ -333,7 +333,7 @@ def main():
         if not groups:
 
             print(
-                "\n✗ ABORTING: No files had a usable date/time - "
+                "\n ABORTING: No files had a usable date/time - "
                 "nothing to process.\n"
             )
 
@@ -434,7 +434,7 @@ def main():
 
             if confirmed:
 
-                print(f"\n✓ Site confirmed slot {group['date']} "
+                print(f"\n Site confirmed slot {group['date']} "
                       f"{group['time']} updated successfully.")
 
                 logger.info(f"Slot {group['date']} {group['time']} - "
@@ -443,7 +443,7 @@ def main():
             else:
 
                 print(
-                    f"\n⚠ No success confirmation seen from the site for "
+                    f"\n No success confirmation seen from the site for "
                     f"slot {group['date']} {group['time']} - check the "
                     f"dialog message above and verify on the site."
                 )

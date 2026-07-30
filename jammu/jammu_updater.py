@@ -148,7 +148,7 @@ class JammuUpdater:
             locator.fill(str(value), timeout=5000)
         except Exception:
             # If standard fill times out because it's disabled, force it with JS
-            print("  ⚠ Standard fill failed (likely disabled). Forcing value via JavaScript...")
+            print("  Standard fill failed (likely disabled). Forcing value via JavaScript...")
             locator.evaluate(
                 """(el, val) => {
                     el.removeAttribute('disabled');
@@ -171,11 +171,13 @@ class JammuUpdater:
             )
 
     def verify(self, locator, expected):
-
         actual = locator.input_value().strip()
-
-        return actual == str(expected)
-
+        # Try comparing as numbers so "19.0" matches "19"
+        try:
+            return float(actual) == float(expected)
+        except ValueError:
+            return actual == str(expected)
+        
     def _format_value(self, reading_type, value):
         """_parse_level_value (jammu_parser.py) always returns a float, even
         for whole-number cusec readings - "15456" becomes 15456.0. Typing
@@ -200,7 +202,7 @@ class JammuUpdater:
         if locator is None:
 
             print(
-                f"✗ Could not find a grid row for '{station}' (checked "
+                f" Could not find a grid row for '{station}' (checked "
                 f"the 'Gauging Site' column) - skipping {reading_type}"
             )
 
@@ -233,7 +235,7 @@ class JammuUpdater:
 
                     continue
 
-                print(f"✓ {station} ({reading_type})")
+                print(f" {station} ({reading_type})")
 
                 return True
 
@@ -244,7 +246,7 @@ class JammuUpdater:
                 self.page.wait_for_timeout(1000)
 
         print(
-            f"✗ {station} ({reading_type}) failed "
+            f" {station} ({reading_type}) failed "
             f"after {retries} attempts"
         )
 
@@ -311,7 +313,7 @@ class JammuUpdater:
 
             if locator is None:
                 label = f"{station} ({reading_type})"
-                print(f"✗ {label}: row no longer found during re-check")
+                print(f" {label}: row no longer found during re-check")
                 if label in successful:
                     successful.remove(label)
                 failed.append(label)
@@ -324,11 +326,11 @@ class JammuUpdater:
                 continue
 
             if self.verify(locator, expected):
-                print(f"✓ {station} ({reading_type}) still correct ({current})")
+                print(f" {station} ({reading_type}) still correct ({current})")
                 continue
 
             print(
-                f"⚠ {station} ({reading_type}) REVERTED - expected "
+                f" {station} ({reading_type}) REVERTED - expected "
                 f"{expected}, found {current!r}. Re-filling."
             )
 
@@ -339,11 +341,11 @@ class JammuUpdater:
             label = f"{station} ({reading_type})"
 
             if ok:
-                print(f"✓ {label} re-filled successfully")
+                print(f" {label} re-filled successfully")
                 if label not in successful:
                     successful.append(label)
             else:
-                print(f"✗ {label} could not be re-filled - needs manual check")
+                print(f" {label} could not be re-filled - needs manual check")
                 if label not in failed:
                     failed.append(label)
 

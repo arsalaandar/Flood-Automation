@@ -32,7 +32,7 @@ API_KEY = os.environ.get("OCR_API_KEY", "")  # <-- REPLACE THIS WITH YOUR FREE O
 def _call_ocr_space_api(image_path):
     """Send image to free OCR.space API and get text back."""
     if API_KEY == "":
-        print("⚠ WARNING: You haven't set your free OCR.space API key.")
+        print(" WARNING: You haven't set your free OCR.space API key.")
         print("   Get one instantly from: https://ocr.space/ocrapi")
         print("   Then paste it into jammu_image_parser.py")
         return None
@@ -59,7 +59,7 @@ def _call_ocr_space_api(image_path):
         result = response.json()
         
         if result.get("IsErroredOnProcessing"):
-            print(f"⚠ API Error: {result.get('ErrorMessage')}")
+            print(f" API Error: {result.get('ErrorMessage')}")
             return None
             
         # Extract parsed text
@@ -70,7 +70,7 @@ def _call_ocr_space_api(image_path):
         return None
 
     except requests.exceptions.RequestException as e:
-        print(f"⚠ API Request Failed: {e}")
+        print(f" API Request Failed: {e}")
         return None
 
 
@@ -147,7 +147,7 @@ def parse_jammu_image(image_path: str) -> dict:
     raw_text = _call_ocr_space_api(image_path)
 
     if not raw_text:
-        print("⚠ WARNING: API returned no text. Returning empty result.")
+        print(" WARNING: API returned no text. Returning empty result.")
         return result
 
     # Extract values using Regex
