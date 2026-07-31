@@ -181,7 +181,12 @@ def group_files_by_slot(paths):
 
         logger.info(f"Parsing : {path}")
 
-        parsed = parse_file(path)
+        try:
+            parsed = parse_file(path)
+        except Exception as e:
+            print(f"\n[WARNING] Skipping {path} due to a parsing error: {e}")
+            logger.warning(f"Skipping {path} due to parsing error: {e}")
+            continue
 
         print(f"\n--- Parsed {path} ---")
 
