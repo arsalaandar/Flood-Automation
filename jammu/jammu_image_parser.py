@@ -15,8 +15,7 @@ import os
 import requests
 from dotenv import load_dotenv
 
-from jammu.jammu_parser import _normalize_date, _normalize_time, _parse_level_value
-from jammu.jammu_xlsx_parser import _round_to_hour
+from jammu.jammu_parser import _normalize_date, _normalize_time, _parse_level_value, _round_to_hour
 
 load_dotenv()
 

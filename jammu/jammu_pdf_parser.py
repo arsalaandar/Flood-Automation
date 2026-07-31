@@ -1,7 +1,7 @@
 import re
 import pdfplumber
 
-from jammu.jammu_parser import _normalize_date, _normalize_time, _parse_level_value
+from jammu.jammu_parser import _normalize_date, _normalize_time, _parse_level_value, _round_to_hour
 
 
 LABEL_PATTERNS = {
@@ -130,7 +130,8 @@ def parse_jammu_pdf(pdf_path: str) -> dict:
         )
 
         if time_match:
-            result["time"] = _normalize_time(time_match.group(1))
+            normalized = _normalize_time(time_match.group(1))
+            result["time"] = _round_to_hour(normalized)
 
         header_lines = full_text.split('\n')[:3]
 

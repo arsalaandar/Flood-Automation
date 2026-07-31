@@ -357,6 +357,28 @@ PAGE_TEMPLATE = """
         
         .btn-sm { background: rgba(255,255,255,0.05); color: var(--text-muted); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; font-weight: 500; }
         .btn-sm:hover { background: rgba(255,255,255,0.1); color: #fff; }
+        /* Hero */
+        .hero { text-align: center; padding: 56px 24px 8px; max-width: 720px; margin: 0 auto; }
+        .hero-icon { font-size: 2.8rem; margin-bottom: 14px; filter: drop-shadow(0 0 20px rgba(59, 130, 246, 0.4)); }
+        .hero h2 { margin: 0 0 12px 0; font-size: 2.1rem; font-weight: 700; letter-spacing: -1px; background: linear-gradient(135deg, #fff 30%, #93c5fd 70%, var(--success) 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; }
+        .hero p { margin: 0; color: var(--text-muted); font-size: 1rem; line-height: 1.6; }
+        .hero-pills { display: flex; justify-content: center; gap: 10px; margin-top: 20px; flex-wrap: wrap; }
+        .hero-pill { font-size: 0.75rem; font-weight: 600; letter-spacing: 0.5px; color: #93c5fd; background: rgba(59, 130, 246, 0.1); border: 1px solid rgba(59, 130, 246, 0.25); padding: 6px 14px; border-radius: 20px; }
+
+        /* Instructions */
+        .instructions-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+        @media (max-width: 768px) { .instructions-grid { grid-template-columns: 1fr; } }
+        .method { background: rgba(15, 23, 42, 0.5); border: 1px solid var(--border); border-radius: 16px; padding: 22px; }
+        .method-icon { font-size: 1.5rem; margin-bottom: 10px; display: block; }
+        .method h3 { margin: 0 0 8px 0; font-size: 1rem; color: #fff; font-weight: 600; }
+        .method p { margin: 0 0 14px 0; font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; }
+        .email-box { display: flex; align-items: center; gap: 8px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px; }
+        .email-box code { flex-grow: 1; color: #4ade80; font-family: 'JetBrains Mono', monospace; font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .copy-btn { background: rgba(59, 130, 246, 0.15); color: #93c5fd; border: 1px solid rgba(59, 130, 246, 0.3); padding: 6px 10px; border-radius: 6px; font-size: 11px; font-weight: 600; cursor: pointer; transition: 0.2s; flex-shrink: 0; }
+        .copy-btn:hover { background: rgba(59, 130, 246, 0.3); color: #fff; }
+        .copy-btn.copied { background: rgba(16, 185, 129, 0.2); color: #4ade80; border-color: rgba(16, 185, 129, 0.4); }
+        .format-tags { display: flex; gap: 6px; margin-top: 14px; flex-wrap: wrap; }
+        .format-tag { font-size: 0.68rem; font-weight: 600; letter-spacing: 0.3px; color: var(--text-muted); background: rgba(255,255,255,0.05); border: 1px solid var(--border); padding: 3px 9px; border-radius: 6px; }
     </style>
 </head>
 <body>
@@ -364,11 +386,50 @@ PAGE_TEMPLATE = """
         <h1>🌊 JK Flood Automation</h1>
         <div class="brand">Arsalaan Dar</div>
     </div>
-    
+
+    <div class="hero">
+        <div class="hero-icon">⚡</div>
+        <h2>Automated Flood &amp; Rainfall Data Pipeline</h2>
+        <p>Automate the collection and processing of flood and rainfall data from various sources to JKIOFS.</p>
+        <div class="hero-pills">
+            <span class="hero-pill"> Kashmir</span>
+            <span class="hero-pill"> Jammu</span>
+            <span class="hero-pill"> Rainfall</span>
+        </div>
+    </div>
+
     <div class="container">
-        <!-- Control Center -->
+        <!-- Instructions -->
+        <div class="card">
+            <div class="card-title">
+                <span>📨 How To Send Data</span>
+            </div>
+            <div class="instructions-grid">
+                <div class="method">
+                    <span class="method-icon">📧</span>
+                    <h3>Option 1 — Email It In</h3>
+                    <p>Forward or send the gauge/rainfall files directly to this address, and they'll be picked up automatically on the next run:</p>
+                    <div class="email-box">
+                        <code id="emailAddr">jkflood.data@gmail.com</code>
+                        <button class="copy-btn" id="copyBtn" onclick="copyEmail()">Copy</button>
+                    </div>
+                </div>
+                <div class="method">
+                    <span class="method-icon">📎</span>
+                    <h3>Option 2 — Upload Manually</h3>
+                    <p>Or skip email entirely — drag & drop your files straight into the File Manager below, or click it to browse and select files from your device.</p>
+                    <div class="format-tags">
+                        <span class="format-tag">PDF</span>
+                        <span class="format-tag">XLSX / XLS</span>
+                        <span class="format-tag">JPG / PNG</span>
+                        <span class="format-tag">TXT</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="card controls">
-            <button id="runBtn" class="btn-run" onclick="startRun()">⚡ Run All Automations</button>
+            <button id="runBtn" class="btn-run" onclick="startRun()"> Run All Automations</button>
             <div id="status" class="status-badge status-idle">Idle</div>
         </div>
         
@@ -413,6 +474,20 @@ PAGE_TEMPLATE = """
     </div>
 
     <script>
+        function copyEmail() {
+            const email = document.getElementById('emailAddr').innerText;
+            navigator.clipboard.writeText(email).then(() => {
+                const btn = document.getElementById('copyBtn');
+                const original = btn.innerText;
+                btn.innerText = 'Copied ✓';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.innerText = original;
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+
         let polling = null;
 
         function updateStatusUI(status) {

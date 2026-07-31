@@ -1,33 +1,8 @@
 import re
 import openpyxl
-from datetime import datetime, timedelta
 
-from jammu.jammu_parser import _normalize_date, _normalize_time, _parse_level_value
+from jammu.jammu_parser import _normalize_date, _normalize_time, _parse_level_value, _round_to_hour
 from jammu.jammu_pdf_parser import STATION_NAME_RE, _NON_STATION_WORDS, _clean
-
-
-def _round_to_hour(time_str):
-    """
-    Ramban's Excel source isn't always sent exactly on the hour (e.g.
-    "3:22 AM" instead of "3:00 AM") - the web form only has hourly
-    slots, so this rounds to the nearest one: <30 min rounds down,
-    >=30 min rounds up (matches standard "round half up" - 3:30 goes
-    to 4:00, not 3:00). Handles the hour/AM-PM wraparound (e.g. 11:45
-    PM -> 12:00 AM) via datetime's own arithmetic rather than manual
-    modulo math, which is easy to get subtly wrong at the 12 boundary.
-    """
-
-    dt = datetime.strptime(time_str, "%I:%M %p")
-
-    if dt.minute >= 30:
-
-        dt = dt.replace(minute=0) + timedelta(hours=1)
-
-    else:
-
-        dt = dt.replace(minute=0)
-
-    return dt.strftime("%I:%M %p")
 
 
 # Office/division header lines can accidentally match the same

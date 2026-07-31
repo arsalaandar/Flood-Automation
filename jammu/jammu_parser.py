@@ -1,4 +1,37 @@
 import re
+from datetime import datetime, timedelta
+
+
+def _round_to_hour(time_str):
+    """
+    Some sources aren't always sent exactly on the hour (e.g. "3:22 AM"
+    instead of "3:00 AM") - the web form only has hourly slots, so this
+    rounds to the nearest one: <30 min rounds down, >=30 min rounds up
+    (matches standard "round half up" - 3:30 goes to 4:00, not 3:00).
+    Handles the hour/AM-PM wraparound (e.g. 11:45 PM -> 12:00 AM) via
+    datetime's own arithmetic rather than manual modulo math, which is
+    easy to get subtly wrong at the 12 boundary.
+
+    Lives here (not in jammu_xlsx_parser.py, where it originated) since
+    it's a shared utility used by the xlsx, pdf, and image parsers alike -
+    keeping it in this common base module avoids a circular import
+    (jammu_pdf_parser.py already needs things FROM jammu_xlsx_parser.py
+    in some setups, and jammu_xlsx_parser.py importing back from
+    jammu_pdf_parser.py already happens too - this module has no
+    dependency on either, so it's the safe shared home for it).
+    """
+
+    dt = datetime.strptime(time_str, "%I:%M %p")
+
+    if dt.minute >= 30:
+
+        dt = dt.replace(minute=0) + timedelta(hours=1)
+
+    else:
+
+        dt = dt.replace(minute=0)
+
+    return dt.strftime("%I:%M %p")
 
 
 def _normalize_date(raw):
@@ -77,7 +110,8 @@ def parse_jammu_document(text: str) -> dict:
     )
 
     if time_match:
-        result["time"] = _normalize_time(time_match.group(1))
+        normalized = _normalize_time(time_match.group(1))
+        result["time"] = _round_to_hour(normalized)
 
     header_match = re.search(r'^(.*?)Date:', text, re.DOTALL)
 

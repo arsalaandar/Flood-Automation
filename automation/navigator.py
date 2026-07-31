@@ -204,10 +204,28 @@ class Navigator:
             f"to fill fields against a slot that may be wrong."
         )
 
+    def _get_available_time_options(self):
+        """Returns the actual HH:MM:00 values currently available in the
+        #ddlTime dropdown, read live from the page - so the safety-net
+        rounding below always matches what the dropdown genuinely
+        offers, rather than assuming it only has on-the-hour slots."""
+
+        return self.page.locator("#ddlTime option").evaluate_all(
+            "options => options.map(o => o.value).filter(v => v)"
+        )
+
     def set_time(self, target_time):
         """
         Sets the #ddlTime dropdown to target_time (format 'HH:MM AM/PM').
         Skips entirely if the dropdown already shows the target time.
+
+        Safety net: if target_time isn't actually one of the dropdown's
+        real options (e.g. an off-hour time like 10:30 PM that slipped
+        through a parser's own rounding), select_option() would retry
+        for the full timeout waiting for an option that will never
+        exist, crashing the whole multi-slot run. Instead, this checks
+        the dropdown's real options first and falls back to whichever
+        one is numerically closest to the target.
         """
 
         t24 = datetime.strptime(
@@ -222,6 +240,26 @@ class Navigator:
         if current == t24:
 
             return
+
+        available = self._get_available_time_options()
+
+        if t24 not in available:
+
+            target_dt = datetime.strptime(t24, "%H:%M:00")
+
+            def _diff(opt):
+                opt_dt = datetime.strptime(opt, "%H:%M:00")
+                return abs((opt_dt - target_dt).total_seconds())
+
+            closest = min(available, key=_diff)
+
+            print(
+                f"⚠ Time '{t24}' is not an available option in "
+                f"#ddlTime - using closest available option "
+                f"'{closest}' instead."
+            )
+
+            t24 = closest
 
         locator.select_option(t24)
 
@@ -269,6 +307,20 @@ class Navigator:
             self.set_date(parsed["date"])
 
             self._ensure_date_committed(parsed["date"])
+
+            # The #ddlTime dropdown only actually becomes visible/
+            # populated for the NEW date after the "Hourly Water Level"
+            # tab is re-clicked - confirmed real case: without this,
+            # every slot after the first one (i.e. every date change
+            # via goto_jammu_slot rather than the initial open_jammu)
+            # hit "element is not visible" on #ddlTime and hung for the
+            # full 60s timeout. open_jammu() already had this click in
+            # the right place; this path was missing it.
+            self.page.locator(
+                '#__tab_TabContainer1_tab_pl_2'
+            ).click()
+
+            self.page.wait_for_timeout(2000)
 
         if parsed.get("time"):
 
