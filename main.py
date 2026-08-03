@@ -78,7 +78,7 @@ def process_message(page, settings, screenshots, navigator, submit, parsed, labe
 
     if corrected:
 
-        print("\n⚠ WARNING: Auto-corrected a likely typo:\n")
+        print("\n WARNING: Auto-corrected a likely typo:\n")
 
         for r in corrected:
             print(
@@ -98,7 +98,7 @@ def process_message(page, settings, screenshots, navigator, submit, parsed, labe
 
     if parsed["unparsed_lines"]:
 
-        print("\n⚠ WARNING: Some lines could not be parsed:\n")
+        print("\n WARNING: Some lines could not be parsed:\n")
 
         for line in parsed["unparsed_lines"]:
             print(f"  - {line}")
@@ -241,7 +241,7 @@ def main():
         if undated:
 
             print(
-                "\n✗ ABORTING: Could not detect date/time for "
+                "\n ABORTING: Could not detect date/time for "
                 f"{len(undated)} message(s). Check the source text.\n"
             )
 
