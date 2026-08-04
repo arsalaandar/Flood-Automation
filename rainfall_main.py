@@ -81,17 +81,58 @@ def main():
         # The site requires visiting FloodDashboard.aspx first - it sets
         # some session/viewstate server-side that rainfallinput.aspx
         # depends on. Jumping straight to rainfallinput.aspx via goto()
-        # (the old behavior) gets rejected (ERR_ABORTED) and bounces
-        # back to Home_Page.aspx, which is why the input fields never
-        # appeared - confirmed via the URL logging above. Matches the
-        # same click-through Kashmir/Jammu's Navigator already does.
+        # gets rejected (ERR_ABORTED) and bounces back to Home_Page.aspx.
+        # Matches the same click-through Kashmir/Jammu's Navigator does.
+        #
+        # A PREVIOUS version of this fix retried the click if the URL
+        # hadn't changed after a fixed 3s wait - that was itself buggy:
+        # the first click's navigation was likely just slower than 3s
+        # (a timing race, not a real failure), and the "retry" then
+        # clicked "Flood Forecast" a SECOND time on a page that may
+        # have already been navigating to/landed on FloodDashboard.aspx,
+        # where that same link may not exist in the same state - the
+        # second click hung until Playwright's own 60s action timeout.
+        # wait_for_url() is what Playwright actually provides for this:
+        # it waits for the URL itself to change, for as long as it
+        # genuinely takes, with no fixed sleep and no blind re-click.
         page.get_by_role(
             "link",
             name="Flood Forecast",
             exact=True
         ).click()
 
-        page.wait_for_timeout(3000)
+        try:
+
+            page.wait_for_url("**/FloodDashboard.aspx**", timeout=40000)
+
+        except Exception:
+
+            # wait_for_url's internal timeout can elapse a moment
+            # before the page actually finishes settling - confirmed
+            # real case: the exception fired, but page.url was ALREADY
+            # correct by the time we read it right after. Give it a
+            # short grace period polling page.url directly before
+            # concluding it's a genuine failure.
+            landed = False
+
+            for _ in range(10):
+
+                if "FloodDashboard.aspx" in page.url:
+
+                    landed = True
+
+                    break
+
+                page.wait_for_timeout(1000)
+
+            if not landed:
+
+                raise Exception(
+                    f"Never reached FloodDashboard.aspx after clicking "
+                    f"'Flood Forecast' - currently on {page.url}. "
+                    "Refusing to proceed, since rainfallinput.aspx "
+                    "depends on this page's session state."
+                )
 
         print(f"On Flood Dashboard: {page.url}")
 
@@ -188,10 +229,10 @@ def main():
             
         page.once("dialog", handle_dialog)
         page.get_by_role("button", name="Submit").click()
-        print("\n Submit clicked. Waiting for confirmation...")
+        print("\n✓ Submit clicked. Waiting for confirmation...")
         
         page.wait_for_timeout(3000)
-        print(" Rainfall data uploaded successfully.")
+        print("✓ Rainfall data uploaded successfully.")
         
     except Exception as e:
         print(f"Error: {e}")
