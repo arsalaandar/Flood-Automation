@@ -8,7 +8,7 @@ In production it updates nearly 50 gauge stations every hour, around the clock.
 
 ## Features
 
-- **Multi-format ingestion:** WhatsApp text, PDF, Excel (`.xls` / `.xlsx`), plain text, and images (read through the GLM-OCR API).
+- **Multi-format ingestion:** WhatsApp text, PDF, Excel (`.xls` / `.xlsx`), plain text, and images (read through the OCR.space API).
 - **Three data streams:** Kashmir gauge readings, Jammu gauge readings, and regional rainfall.
 - **Two intake paths:** files emailed to a Gmail inbox (IMAP) or uploaded through the web dashboard.
 - **Browser automation:** Playwright logs in, navigates to the right region, date, and time slot, fills the fields, and submits.
@@ -60,9 +60,10 @@ Parsing details worth knowing:
 | Web dashboard | Flask |
 | PDF parsing | pdfplumber |
 | Excel parsing | pandas, openpyxl, xlrd |
-| Image OCR | GLM-OCR API |
+| Image OCR | OCR.space API |
 | Email intake | `imaplib` (standard library) |
 | Config and logging | JSON files, Python `logging` |
+| Containerization | Docker, Docker Compose |
 
 Exact versions are pinned in `requirements.txt`.
 
@@ -76,13 +77,16 @@ Flood-Automation/
 ├── jammu_main.py           # Jammu entry point (CLI)
 ├── rainfall_main.py        # Rainfall entry point (CLI)
 ├── requirements.txt
-├── .env.example
+├── Dockerfile              # Image: Python 3.12 + Chromium + dependencies
+├── docker-compose.yml      # Service, port 80, volumes, .env loading
+├── .dockerignore           # Keeps .env, data, and logs out of the image
 ├── config/
 │   ├── settings.json       # Timing, headless mode, feature flags
 │   └── stations.json       # Station mappings (Kashmir, Jammu)
 ├── data/                   # Files waiting to be processed
 │   └── processed/<date>/   # Archive after submission
-├── logs/                   # Daily logs and failure screenshots
+├── logs/                   # Daily logs
+├── screenshots/            # Failure screenshots
 ├── automation/             # Playwright modules
 │   ├── browser.py          # Browser lifecycle
 │   ├── login.py            # Portal authentication
@@ -107,7 +111,7 @@ Flood-Automation/
 
 ## Getting started
 
-**Prerequisites:** Python 3.9+, Git, a Gmail account with IMAP enabled (for email intake), and authorized JKIOFS credentials.
+**Prerequisites:** Python 3.9+, Git, a Gmail account with IMAP enabled (for email intake), and authorized JKIOFS credentials. To run in a container instead of a local Python environment, you only need Git and Docker with the Compose plugin (see [Deployment](#deployment)).
 
 ```bash
 git clone https://github.com/arsalaandar/Flood-Automation.git
@@ -119,12 +123,12 @@ source venv/bin/activate          # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 playwright install chromium
 
-cp .env.example .env              # then fill in your values
+# create a .env file in the project root with your values (see below)
 ```
 
 ### Environment variables
 
-Create `.env` from `.env.example`. Never commit it.
+Create a `.env` file in the project root with the variables below. There is no committed template, and `.env` must never be committed.
 
 | Variable | Purpose |
 |---|---|
@@ -134,13 +138,14 @@ Create `.env` from `.env.example`. Never commit it.
 | `EMAIL_PASSWORD` | Gmail **app-specific** password |
 | `APP_PASSWORD` | Shared password for the web dashboard (the app refuses to start without it) |
 | `FLASK_SECRET_KEY` | Flask session signing key (a random key is generated if unset, which invalidates sessions on restart) |
+| `OCR_API_KEY` | OCR.space API key, used to read image inputs (image parsing will not work without it) |
 
-Image inputs are read through the GLM-OCR API, so its API key must also be set in `.env`.
+Use plain `KEY=value` lines with no quotes. The same file is used by Docker Compose.
 
 ### Run
 
 ```bash
-# Web dashboard (http://localhost:5000)
+# Web dashboard (http://localhost, port 80)
 python app.py
 
 # Command line, one region at a time
@@ -182,7 +187,7 @@ Only one run can be active at a time. A second click while a run is active is re
 | `dry_run` | `true` skips the final submission, for safe testing against the portal |
 | `retry_count` | Max attempts per field fill; raise it on a slow network |
 | `wait_after_region` / `wait_after_date` / `wait_after_time` / `wait_after_enter` | Settle time after each AJAX postback; raise these if verification keeps failing |
-| `take_screenshot` | Save failure screenshots to `logs/` |
+| `take_screenshot` | Save failure screenshots to `screenshots/` |
 
 Credentials belong in environment variables. The `username` and `password` keys in `settings.json` are deprecated.
 
@@ -197,7 +202,7 @@ New station *name aliases* (source name to portal name) currently live in the pa
 
 - **Login:** up to 3 attempts with an extended load timeout, because the portal can take 60 to 90 seconds to respond after login.
 - **Field fills:** retried per field, followed by a final verification pass.
-- **Verification failures:** logged with a screenshot in `logs/` and not silently submitted.
+- **Verification failures:** logged with a screenshot in `screenshots/` and not silently submitted.
 - **Parse problems:** unparsed lines and typo corrections are flagged in the output instead of being dropped.
 - **Logs:** one file per day in `logs/`, for example `20260729.log`.
 
@@ -206,8 +211,47 @@ New station *name aliases* (source name to portal name) currently live in the pa
 Production runs on an AWS EC2 instance in the Mumbai region (`ap-south-1`) with the dashboard served over HTTPS on a custom domain.
 
 - Recommended size: 2 vCPUs and 4 GB RAM. Watch disk usage, since logs, screenshots, and archived files accumulate.
-- The host must have network access to the JKIOFS portal.
-- Run the dashboard as a service and put a reverse proxy with TLS in front of it.
+- The host must have network access to the JKIOFS portal. The portal is reachable from Indian IP addresses, so deploy in the Mumbai region and check with `curl -I https://jkiofs.in/jkiofs/index.aspx` before installing anything.
+- Run the dashboard as a service (Docker, below, or systemd) and put a reverse proxy with TLS in front of it.
+
+### Docker (recommended)
+
+The repository includes a `Dockerfile`, `docker-compose.yml`, and `.dockerignore`.
+
+- The image is based on Python 3.12 with Chromium and its system libraries preinstalled. The container timezone is `Asia/Kolkata`.
+- `.env` is loaded by Compose at runtime and is excluded from the image, so secrets are never baked in.
+- The dashboard is published on port 80, and Chromium gets 1 GB of shared memory (`shm_size`) so it does not crash on larger pages.
+- `data/`, `logs/`, `screenshots/`, and `config/` are mounted from the host. They survive rebuilds, and `config/settings.json` and `config/stations.json` can be edited without rebuilding the image.
+- The service uses `restart: unless-stopped`, so it comes back after a crash or a server reboot as long as Docker starts on boot.
+
+```bash
+# On the server, with Docker and the Compose plugin installed
+git clone https://github.com/arsalaandar/Flood-Automation.git
+cd Flood-Automation
+mkdir -p data logs screenshots
+
+# create .env with your values (see Environment variables), then:
+chmod 600 .env
+docker compose up -d --build
+```
+
+The first build takes a few minutes while it installs the Python packages and downloads Chromium. Then open `http://<server-ip>` and sign in with `APP_PASSWORD`. For a first run against the real portal, set `"dry_run": true` in `config/settings.json` (no rebuild needed) and switch it back to `false` once the log looks right.
+
+Common commands:
+
+```bash
+docker compose ps                          # status
+docker compose logs -f --tail=50           # live logs
+docker compose restart                     # restart
+git pull && docker compose up -d --build   # deploy new code
+docker image prune -f                      # reclaim disk after rebuilds
+```
+
+Port 80 is served as plain HTTP. For HTTPS on a custom domain, terminate TLS in front of the container (a reverse proxy or your domain provider's SSL service). Restrict SSH access (port 22) in the instance's security group to your own IP address.
+
+### Without Docker (systemd)
+
+To run directly on the host, create a systemd service:
 
 ```ini
 # /etc/systemd/system/flood-automation.service
@@ -247,10 +291,10 @@ sudo playwright install-deps    # system libraries for Chromium
 |---|---|
 | "Login timed out" | The portal is slow. Re-run; raise the login timeout if it repeats |
 | "Station X not found in `stations.json`" | Add the station to `config/stations.json` (or its alias to the parser) |
-| "Verification failed after 3 attempts" | Increase `wait_after_enter`, then check the failure screenshot in `logs/` |
+| "Verification failed after 3 attempts" | Increase `wait_after_enter`, then check the failure screenshot in `screenshots/` |
 | No success confirmation from the portal | Check the screenshot and re-run once; confirm on the portal before retrying again |
 
-**Housekeeping:** rotate old logs and processed files periodically, rotate `APP_PASSWORD` regularly, and update dependencies on a schedule.
+**Housekeeping:** rotate old logs, screenshots, and processed files periodically, rotate `APP_PASSWORD` regularly, and update dependencies on a schedule. When running in Docker, run `docker image prune -f` now and then to reclaim disk after rebuilds.
 
 ## Security
 
@@ -258,7 +302,7 @@ sudo playwright install-deps    # system libraries for Chromium
 - Use a Gmail **app-specific** password limited to IMAP access.
 - Dashboard access needs the shared password; sessions use signed cookies.
 - File upload names are sanitized and file paths are checked to stay inside `data/` (path-traversal protection).
-- Keep `.env` out of git and rotate `APP_PASSWORD` and `FLASK_SECRET_KEY` after any suspected exposure.
+- Keep `.env` out of git and rotate `APP_PASSWORD` and `FLASK_SECRET_KEY` after any suspected exposure. `.dockerignore` also keeps `.env`, `data/`, `logs/`, and `screenshots/` out of the Docker image.
 
 ## Known limitations
 
