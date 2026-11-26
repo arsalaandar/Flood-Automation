@@ -1,0 +1,14 @@
+services:
+  flood-automation:
+    build: .
+    container_name: flood-automation
+    restart: unless-stopped
+    env_file: .env
+    ports:
+      - "80:80"
+    shm_size: "1gb"          # Chromium crashes with Docker's default 64MB /dev/shm
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./screenshots:/app/screenshots
+      - ./config:/app/config  # edit settings.json / stations.json without rebuilding
